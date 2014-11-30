@@ -3,6 +3,8 @@ package record
 import (
 	"fmt"
 	"time"
+
+	"github.com/salviati/symutils/fuzzy"
 )
 
 type Record struct {
@@ -21,4 +23,17 @@ func (this Record) String() string {
 		"debit: " + fmt.Sprintf("%.2f", this.Debit) + "\n" +
 		"credit: " + fmt.Sprintf("%.2f", this.Credit) + "\n" +
 		"balance: " + fmt.Sprintf("%.2f", this.Balance)
+}
+
+func (this Record) Match(rec Record) int {
+
+	cost := fuzzy.LevenshteinCost{
+		Del:  1,
+		Ins:  1,
+		Subs: 1,
+	}
+
+	dist := fuzzy.Levenshtein(this.Transaction, rec.Transaction, &cost)
+
+	return dist
 }

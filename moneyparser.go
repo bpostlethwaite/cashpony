@@ -13,7 +13,7 @@ import (
 	"github.com/bpostlethwaite/cashpony/record"
 )
 
-const shortForm = "01/02/2006"
+const SHORTFORM = "01/02/2006"
 const DATADIR = "data"
 
 func main() {
@@ -50,7 +50,7 @@ func eatit(file string) {
 
 	// sanity check, display to standard output
 	for _, each := range rawCSVdata {
-		date, err := time.Parse(shortForm, each[0])
+		date, err := time.Parse(SHORTFORM, each[0])
 		if err != nil {
 			log.Fatal(err)
 		}
