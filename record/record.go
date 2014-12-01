@@ -16,6 +16,8 @@ type Record struct {
 	Label       string
 }
 
+// select.options[select.selectedIndex].value
+
 func (this *Record) String() string {
 	return "date: " + this.Date.String() + "\n" +
 		"transaction: " + this.Transaction + "\n" +

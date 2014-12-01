@@ -21,5 +21,4 @@ func TestSort(t *testing.T) {
 		t.Error("Expected 'VDEV                     FRABEN HEIT' but got",
 			act.Records[2].Transaction)
 	}
-
 }
