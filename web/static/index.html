@@ -5,17 +5,37 @@
   </head>
   <body>
 
+    <header style="overflow:hidden">
+      <h3 class="crossbars barcolor">cashpony</h3>
+    </header>
+
     <table class="table-border-rows">
       <tbody>
         <tr>
-          <th>Date</th>
-          <th>Transaction</th>
-          <th>Debit</th>
-          <th>Label</th>
+          <th>
+            <button class="button button-block one-whole headercolor js-sort-date">
+              Date
+            </button>
+          </th>
+          <th>
+            <button class="button button-block one-whole headercolor js-sort-transaction">
+              Transaction
+            </button>
+          </th>
+          <th>
+            <button class="button button-block one-whole headercolor js-sort-debit">
+              Debit
+            </button>
+          </th>
+          <th>
+            <button class="button button-block one-whole headercolor js-sort-label">
+              Label
+            </button>
+          </th>
         </tr>
-
       </tbody>
     </table>
+
     <script type="text/javascript" src="/js/bundle.js"></script>
   </body>
 </html>

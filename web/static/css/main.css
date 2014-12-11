@@ -1271,14 +1271,22 @@ textarea {
  * YOUR MAGICAL CSS GOES HERE!
  */
 
-.inline {
-    display: inline-block !important;
-}
-
 .no-border-white {
     border: none !important;
     background: #fff !important;
 }
+
+.barcolor:after {
+ background: #C04B4B;
+}
+
+.barcolor:before {
+ background: #C04B4B;
+}
+
+/* .headercolor { */
+/*     background-color: #ED9B9B; */
+/* } */
 
 td {
     vertical-align: inherit !important;

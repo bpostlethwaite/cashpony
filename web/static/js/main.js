@@ -1,14 +1,15 @@
 var Record = require('./record');
-
-
 var conn;
 var table = document.querySelector('table');
 var tbody = table.querySelector('tbody');
+var rows = {};
 
 function msgRouter(msg) {
-    var row = new Record(Math.random() + 'a');
-    tbody.appendChild(row.row);
+    var row = new Record(msg);
 
+    rows[row.id] = row;
+
+    tbody.appendChild(row.elem);
     row.inject(msg);
     console.log(msg);
 }
