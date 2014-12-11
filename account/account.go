@@ -10,6 +10,7 @@ import (
 
 	"github.com/bpostlethwaite/cashpony/matcher"
 	"github.com/bpostlethwaite/cashpony/record"
+	"github.com/jmcvetta/randutil"
 )
 
 type Account struct {
@@ -78,11 +79,19 @@ func (this *Account) LoadCSV(file string, template csvTemplate) {
 			credit = 0.0
 		}
 
+		id, err := randutil.AlphaString(8)
+		if err != nil {
+			log.Fatal("Why is the random string creator failing?")
+		}
+
 		record := record.Record{
 			Date:        date,
 			Transaction: transaction,
 			Debit:       debit,
 			Credit:      credit,
+			Label:       "Unknown",
+			Userset:     false,
+			Id:          id,
 		}
 
 		this.Records = append(this.Records, record)
