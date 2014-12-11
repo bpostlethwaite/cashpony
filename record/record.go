@@ -1,6 +1,7 @@
 package record
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
 	"time"
@@ -9,20 +10,25 @@ import (
 )
 
 type Record struct {
-	Date        time.Time
-	Transaction string
-	Debit       float64
-	Credit      float64
-	Label       string
+	Id          string    `json:"id"`
+	Date        time.Time `json:"date"`
+	Transaction string    `json:"transaction"`
+	Debit       float64   `json:"debit"`
+	Credit      float64   `json:"-"`
+	Label       string    `json:"label"`
+	Userset     bool      `json:"-"`
 }
 
-// select.options[select.selectedIndex].value
-
 func (this *Record) String() string {
-	return "date: " + this.Date.String() + "\n" +
-		"transaction: " + this.Transaction + "\n" +
-		"debit: " + fmt.Sprintf("%.2f", this.Debit) + "\n" +
-		"credit: " + fmt.Sprintf("%.2f", this.Credit) + "\n"
+	return fmt.Sprintf("date:      %s\n", this.Date.String()) +
+		fmt.Sprintf("transaction:  %s\n", this.Transaction) +
+		fmt.Sprintf("debit:        %.2f\n", this.Debit) +
+		fmt.Sprintf("label:        %s", this.Label)
+}
+
+func (this *Record) Json() ([]byte, error) {
+	json, err := json.Marshal(this)
+	return json, err
 }
 
 func (this *Record) Match(rec Record) int {

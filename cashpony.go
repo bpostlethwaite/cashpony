@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -11,6 +10,16 @@ import (
 )
 
 const DATADIR = "data"
+
+var Labels = map[string]bool{
+	"Clothing":  true,
+	"Household": true,
+	"Dining":    true,
+	"Transit":   true,
+	"Food":      true,
+	"Misc":      true,
+	"Unknown":   true,
+}
 
 func main() {
 
@@ -33,7 +42,7 @@ func main() {
 		select {
 		case <-serverMsg.Out:
 			for _, rec := range act.Records {
-				json, err := json.Marshal(rec)
+				json, err := rec.Json()
 				if err != nil {
 					fmt.Println("could not marshal record")
 				} else {
