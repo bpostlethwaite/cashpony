@@ -1,3 +1,0 @@
-package bababot
-
-type SMS

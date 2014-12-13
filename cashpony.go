@@ -2,36 +2,26 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"log"
 	"path/filepath"
 
-	"github.com/bpostlethwaite/cashpony/account"
+	"github.com/bpostlethwaite/cashpony/labeller"
+	"github.com/bpostlethwaite/cashpony/transacter"
 	"github.com/bpostlethwaite/cashpony/web"
 )
 
 const DATADIR = "data"
 
-var Labels = map[string]bool{
-	"Clothing":  true,
-	"Household": true,
-	"Dining":    true,
-	"Transit":   true,
-	"Food":      true,
-	"Misc":      true,
-	"Unknown":   true,
-}
-
 func main() {
 
-	files, _ := ioutil.ReadDir(DATADIR)
-	var act = &account.Account{Records: nil}
-
-	for _, f := range files {
-		fname := filepath.Join(DATADIR, f.Name())
-		act.LoadCSV(fname, account.TDCC)
+	dir, err := filepath.Abs(DATADIR)
+	if err != nil {
+		log.Fatal("fatal filepath %s", err)
 	}
 
-	//act.Print()
+	tor := transact.NewTransact(dir)
+	lab := label.NewLabeller(filepath.Join(dir, "labels.json"))
+
 	server := web.WebClient
 
 	serverMsg := server.Msg
@@ -41,7 +31,7 @@ func main() {
 	for {
 		select {
 		case <-serverMsg.Out:
-			for _, rec := range act.Records {
+			for _, rec := range tor.Transactions {
 				json, err := rec.Json()
 				if err != nil {
 					fmt.Println("could not marshal record")
