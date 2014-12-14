@@ -22,10 +22,7 @@ func main() {
 	labeller := label.NewLabeller(filepath.Join(dir, "labels.json"))
 
 	// regular always-on Smsg channels
-	transacter.Pipe(labeller)
-	labeller.Pipe(recorder)
-	recorder.Pipe(client)
-	client.Pipe(labeller)
+	transacter.Pipe(labeller).Pipe(recorder).Pipe(client).Pipe(labeller)
 
 	// flush channels. (channels of channels)
 	labeller.FlushFrom(recorder)
