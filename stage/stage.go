@@ -29,8 +29,8 @@ type Stage struct {
 func NewStage() *Stage {
 	r := &Stage{
 		Piped: &piper.Piped{
-			ReadFrom: make(chan *message.Smsg, 5),
-			WriteTo:  make(chan *message.Smsg, 5),
+			ReadFrom: make(chan message.Smsg, 5),
+			WriteTo:  make(chan message.Smsg, 5),
 		},
 		sortMode: "date",
 	}
@@ -39,7 +39,7 @@ func NewStage() *Stage {
 }
 
 func (this *Stage) start(n int) {
-	var smsg *message.Smsg
+	var smsg message.Smsg
 
 	if n < 1 {
 		panic("can't start a pipe with n less than 1")
@@ -49,18 +49,54 @@ func (this *Stage) start(n int) {
 		go func() {
 			for smsg = range this.WriteTo {
 
-				if smsg.Flush != nil {
-					// this.flushTo(smsg)
+				var updated bool
+
+				rec := &smsg.Record            // ptr to Incoming smsg Rec
+				rin := this.lookUpById(rec.Id) // ptr to Internally stored Rec
+
+				// swap out rec for stored db item rin. First
+				// apply updates from rec to rin, then continue
+				// to modify rin disposing of rec.
+				if rin == nil {
+					// add record to database, rin is now pointer to stored rec
+					this.Add(*rec)
+					rin = this.lookUpById(rec.Id)
+					updated = true
+				} else {
+					// update stored record r
+					updated = rin.UpdateWith(rec)
 				}
-				// forward from this pipe to pipee
-				this.ReadFrom <- smsg
+
+				// replace the record
+
+				// No longer use rec, we now use pointer to
+				// stored record r
+				if updated {
+					// send to Client on update channel
+
+					this.ReadFrom <- smsg
+				}
+
+				if smsg.Flush != nil {
+					this.flushTo(smsg)
+
+				}
 			}
 		}()
 	}
 }
 
-func (r *Stage) Add(rec record.Record) {
-	r.Recs = append(r.Recs, rec)
+func (this *Stage) Add(rec record.Record) {
+	this.Recs = append(this.Recs, rec)
+}
+
+func (this *Stage) lookUpById(id string) *record.Record {
+	for i := 0; i < len(this.Recs); i++ {
+		if this.Recs[i].Id == id {
+			return &this.Recs[i]
+		}
+	}
+	return nil
 }
 
 func (r *Stage) Len() int {

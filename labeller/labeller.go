@@ -40,8 +40,8 @@ type pairs struct {
 func NewLabeller(dbfile string) *labeller {
 	l := &labeller{
 		Piped: &piper.Piped{
-			ReadFrom: make(chan *message.Smsg, 5),
-			WriteTo:  make(chan *message.Smsg, 5),
+			ReadFrom: make(chan message.Smsg, 5),
+			WriteTo:  make(chan message.Smsg, 5),
 		},
 		dbfile:    dbfile,
 		matchDist: matchDistance,
@@ -78,7 +78,7 @@ func (this *labeller) AddLabel(rec record.Record) *sync.WaitGroup {
 
 func (this *labeller) start(n int) {
 
-	var smsg *message.Smsg
+	var smsg message.Smsg
 
 	if n < 1 {
 		panic("can't start a pipe with n less than 1")
@@ -88,7 +88,9 @@ func (this *labeller) start(n int) {
 	process := func() {
 		for smsg = range this.WriteTo {
 
-			rec := smsg.Record
+			// grab the pointer to this Rec as we are going to update
+			// its fields
+			rec := &smsg.Record
 			name := rec.Name
 
 			// if this is a label-update then apply the label to the store and
@@ -98,7 +100,6 @@ func (this *labeller) start(n int) {
 
 				this.labels[name] = rec.Label
 
-				rec.Updated = true
 				// Right now we are flush on the main write channel
 				// should investigate setting up an temporary channel
 				// just for this.
@@ -115,7 +116,6 @@ func (this *labeller) start(n int) {
 				rec.Updated = true
 				rec.Label = label
 			}
-
 			this.ReadFrom <- smsg
 		}
 	}

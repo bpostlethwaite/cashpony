@@ -62,8 +62,8 @@ func TestPipelineRecordUpdate(t *testing.T) {
 
 	l := NewLabeller(dbfile)
 
-	smsg := &message.Smsg{
-		Record: &record.Record{
+	smsg := message.Smsg{
+		Record: record.Record{
 			Name:  "strange",
 			Label: "boson",
 		},
@@ -105,9 +105,9 @@ func TestPipelineRecordRecycle(t *testing.T) {
 		t.Error("Expected boson to not be present in label store")
 	}
 
-	smsg := &message.Smsg{
+	smsg := message.Smsg{
 		LabelUpdate: true,
-		Record: &record.Record{
+		Record: record.Record{
 			Name:  "strange",
 			Label: "boson",
 		},
@@ -131,10 +131,6 @@ func TestPipelineRecordRecycle(t *testing.T) {
 
 	if label != "boson" {
 		t.Error("Expected label 'boson' but got", label)
-	}
-
-	if !smsg.Record.Updated {
-		t.Error("Expected record to be updated, but wasn't")
 	}
 
 	if smsg.Flush == nil {

@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/bpostlethwaite/cashpony/message"
+	"github.com/bpostlethwaite/cashpony/piper"
 	"github.com/bpostlethwaite/cashpony/record"
 )
 
@@ -53,5 +55,97 @@ func TestSortRecordByName(t *testing.T) {
 		r.Recs[3].Name != "c" {
 
 		t.Error("Names failed to sort by name")
+	}
+}
+
+func TestStoreUpdate(t *testing.T) {
+
+	s := NewStage()
+	p := piper.NewPiped(0, 0)
+
+	p.Pipe(s)
+
+	smsg := message.Smsg{
+		Record: record.Record{
+			Id:   "zap",
+			Name: "a",
+		},
+	}
+
+	p.WriteTo <- smsg
+
+	time.Sleep(10 * time.Millisecond)
+
+	rec := s.lookUpById("zap")
+
+	if rec.Name != "a" {
+		t.Error("Expected Stored Record with Name 'a' but got", rec.Name)
+	}
+
+	smsg.Record.Name = "b"
+
+	// make sure internally stored record isn't linked
+	// by reference to the record embedded in the smsg
+	rec = s.lookUpById("zap")
+	if rec.Name == "b" {
+		t.Error("Modification via reference to stored Records not allowed")
+	}
+
+	// Sending modified record into Stage should update
+	// the internal record
+	p.WriteTo <- smsg
+	time.Sleep(10 * time.Millisecond)
+
+	rec = s.lookUpById("zap")
+
+	if rec.Name != "b" {
+		t.Error("Expected Stored Record with Name 'b' but got", rec.Name)
+	}
+
+}
+
+func TestUpdatePipe(t *testing.T) {
+
+	s := NewStage()
+	p1 := piper.NewPiped(2, 2)
+	p2 := piper.NewPiped(0, 0)
+
+	p1.Pipe(s).Pipe(p2)
+
+	smsg1 := message.Smsg{
+		Record: record.Record{
+			Id:   "zap",
+			Name: "a",
+		},
+	}
+
+	p1.WriteTo <- smsg1
+	smsg := <-p2.ReadFrom
+
+	if smsg1.Record.Name != smsg.Record.Name {
+		t.Error("First messaage passes through should match message passed in")
+	}
+
+	smsg2 := message.Smsg{
+		Record: record.Record{
+			Id:   "zap",
+			Name: "a",
+		},
+	}
+
+	smsg3 := message.Smsg{
+		Record: record.Record{
+			Id:   "zap",
+			Name: "zorh",
+		},
+	}
+
+	p1.WriteTo <- smsg2
+	p1.WriteTo <- smsg3
+
+	smsg = <-p2.ReadFrom
+
+	if smsg.Record.Name != smsg3.Record.Name {
+		t.Error("Expected updated message with name Zorh, instead got", smsg3.Record.Name)
 	}
 }
