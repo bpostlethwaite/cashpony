@@ -1,8 +1,10 @@
-package recorder
+package stage
 
 import (
 	"testing"
 	"time"
+
+	"github.com/bpostlethwaite/cashpony/record"
 )
 
 func TestSortRecordByDate(t *testing.T) {
@@ -13,15 +15,15 @@ func TestSortRecordByDate(t *testing.T) {
 	dateB := time.Date(2009, time.November, 11, 23, 0, 0, 0, time.UTC)
 	dateC := time.Date(2009, time.November, 12, 23, 0, 0, 0, time.UTC)
 
-	r := Recorder{}
+	r := Stage{}
 
-	r.Add(Record{Date: dateC, Name: "C"})
-	r.Add(Record{Date: dateA, Name: "A"})
-	r.Add(Record{Date: dateB, Name: "B"})
+	r.Add(record.Record{Date: dateC, Name: "C"})
+	r.Add(record.Record{Date: dateA, Name: "A"})
+	r.Add(record.Record{Date: dateB, Name: "B"})
 
 	r.SortBy("date")
 
-	r.Add(Record{Date: dateC, Name: "A"})
+	r.Add(record.Record{Date: dateC, Name: "A"})
 
 	r.SortBy("date")
 
@@ -37,11 +39,11 @@ func TestSortRecordByDate(t *testing.T) {
 
 func TestSortRecordByName(t *testing.T) {
 
-	r := Recorder{}
-	r.Add(Record{Name: "b"})
-	r.Add(Record{Name: "a"})
-	r.Add(Record{Name: "c"})
-	r.Add(Record{Name: "a"})
+	r := Stage{}
+	r.Add(record.Record{Name: "b"})
+	r.Add(record.Record{Name: "a"})
+	r.Add(record.Record{Name: "c"})
+	r.Add(record.Record{Name: "a"})
 
 	r.SortBy("name")
 

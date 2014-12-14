@@ -9,7 +9,8 @@ import (
 
 	"github.com/bpostlethwaite/cashpony/matcher"
 	"github.com/bpostlethwaite/cashpony/message"
-	"github.com/bpostlethwaite/cashpony/recorder"
+	"github.com/bpostlethwaite/cashpony/piper"
+	"github.com/bpostlethwaite/cashpony/record"
 )
 
 var Labels = map[string]bool{
@@ -25,11 +26,10 @@ var Labels = map[string]bool{
 const matchDistance = 1
 
 type labeller struct {
-	*message.Piped
+	*piper.Piped
 	dbfile    string
 	labels    map[string]string
 	matchDist int
-	in        chan *message.Smsg
 }
 
 type pairs struct {
@@ -39,7 +39,7 @@ type pairs struct {
 
 func NewLabeller(dbfile string) *labeller {
 	l := &labeller{
-		Piped: &message.Piped{
+		Piped: &piper.Piped{
 			ReadFrom: make(chan *message.Smsg, 5),
 			WriteTo:  make(chan *message.Smsg, 5),
 		},
@@ -67,7 +67,7 @@ func (this *labeller) MatchLabel(name string, maxDist int) string {
 	return pairs.labels[idx]
 }
 
-func (this *labeller) AddLabel(rec recorder.Record) *sync.WaitGroup {
+func (this *labeller) AddLabel(rec record.Record) *sync.WaitGroup {
 	name := rec.Name
 	label := rec.Label
 
@@ -99,7 +99,10 @@ func (this *labeller) start(n int) {
 				this.labels[name] = rec.Label
 
 				rec.Updated = true
-				smsg.Recycle = true
+				// Right now we are flush on the main write channel
+				// should investigate setting up an temporary channel
+				// just for this.
+				smsg.Flush = this.WriteTo
 
 				this.ReadFrom <- smsg
 				continue

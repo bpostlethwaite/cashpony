@@ -1,5 +1,7 @@
 package hub
 
+import "github.com/bpostlethwaite/cashpony/record"
+
 type PubSub struct {
 	pub chan *record.Record
 }

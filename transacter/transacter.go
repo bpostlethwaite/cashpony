@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/bpostlethwaite/cashpony/message"
-	"github.com/bpostlethwaite/cashpony/recorder"
+	"github.com/bpostlethwaite/cashpony/record"
 )
 
 type transact struct {
@@ -22,27 +22,9 @@ type transact struct {
 func NewTransact(datadir string) *transact {
 	transact := &transact{datadir: datadir}
 
-	this.pipe = make(chan *message.Smsg, 100)
 	transact.LoadAll()
 
 	return transact
-
-}
-
-func (this *transact) Pipe(pipee *message.Pipeline) {
-	// transacter.Pipe(labeller)
-
-	var smsg *message.Smsg
-	thispipe := this.pipe
-	thatpipe := pipee.Fitting()
-
-	go func() {
-		select {
-		case smsg = <-thispipe:
-			// forward
-			thatpipe <- smsg
-		}
-	}()
 
 }
 
@@ -91,7 +73,7 @@ func (this *transact) LoadCSV(file string, template csvTemplate) {
 			debit = 0.0
 		}
 
-		r := recorder.Record{
+		r := record.Record{
 			Date:  date,
 			Name:  transaction,
 			Debit: debit,

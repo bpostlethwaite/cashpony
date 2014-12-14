@@ -1,7 +1,10 @@
-package message
+package piper
 
 import (
 	"sync"
+
+	"github.com/bpostlethwaite/cashpony/message"
+
 	"testing"
 )
 
@@ -12,11 +15,11 @@ func TestThroughput(t *testing.T) {
 
 	p1.Pipe(p2)
 
-	smsg := &Smsg{
-		msg: "hot damn!",
+	smsg := &message.Smsg{
+		Msg: "hot damn!",
 	}
 
-	var rec *Smsg
+	var rec *message.Smsg
 	var txt string
 
 	var wg sync.WaitGroup
@@ -28,7 +31,7 @@ func TestThroughput(t *testing.T) {
 
 	go func() {
 		rec = <-p2.ReadFrom
-		txt = rec.msg
+		txt = rec.Msg
 		wg.Done()
 	}()
 
@@ -47,16 +50,16 @@ func TestDuplex(t *testing.T) {
 
 	p1.Pipe(p2).Pipe(p1)
 
-	smsg1 := &Smsg{
-		msg: "msg from 1",
+	smsg1 := &message.Smsg{
+		Msg: "msg from 1",
 	}
-	smsg2 := &Smsg{
-		msg: "msg from 2",
+	smsg2 := &message.Smsg{
+		Msg: "msg from 2",
 	}
 
-	var rec1, rec2 *Smsg
+	var rec1, rec2 *message.Smsg
 	var txt1 string
-	// var rec1 *Smsg
+	// var rec1 *message.Smsg
 	var txt2 string
 
 	go func() {
@@ -72,13 +75,13 @@ func TestDuplex(t *testing.T) {
 
 	go func() {
 		rec1 = <-p2.ReadFrom
-		txt1 = rec1.msg
+		txt1 = rec1.Msg
 		wg.Done()
 	}()
 
 	go func() {
 		rec2 = <-p1.ReadFrom
-		txt2 = rec2.msg
+		txt2 = rec2.Msg
 		wg.Done()
 	}()
 

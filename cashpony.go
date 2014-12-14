@@ -17,12 +17,14 @@ func main() {
 	if err != nil {
 		log.Fatal("fatal filepath %s", err)
 	}
-
 	transacter := transact.NewTransact(dir)
 	labeller := label.NewLabeller(filepath.Join(dir, "labels.json"))
 
 	// regular always-on Smsg channels
-	transacter.Pipe(labeller).Pipe(recorder).Pipe(client).Pipe(labeller)
+	transacter.Pipe(labeller)
+	labeller.Pipe(recorder)
+	recorder.Pipe(client)
+	client.Pipe(labeller)
 
 	// flush channels. (channels of channels)
 	labeller.FlushFrom(recorder)

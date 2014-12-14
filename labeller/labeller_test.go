@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/bpostlethwaite/cashpony/message"
-	"github.com/bpostlethwaite/cashpony/recorder"
+	"github.com/bpostlethwaite/cashpony/record"
 )
 
 const dbfile = "test_labels.json"
@@ -40,7 +40,7 @@ func TestLabelMatching(t *testing.T) {
 func TestLabelAdded(t *testing.T) {
 	l := NewLabeller(dbfile)
 
-	r := recorder.Record{
+	r := record.Record{
 		Name:  "strange",
 		Label: "charm",
 	}
@@ -63,7 +63,7 @@ func TestPipelineRecordUpdate(t *testing.T) {
 	l := NewLabeller(dbfile)
 
 	smsg := &message.Smsg{
-		Record: &recorder.Record{
+		Record: &record.Record{
 			Name:  "strange",
 			Label: "boson",
 		},
@@ -107,7 +107,7 @@ func TestPipelineRecordRecycle(t *testing.T) {
 
 	smsg := &message.Smsg{
 		LabelUpdate: true,
-		Record: &recorder.Record{
+		Record: &record.Record{
 			Name:  "strange",
 			Label: "boson",
 		},
@@ -137,7 +137,7 @@ func TestPipelineRecordRecycle(t *testing.T) {
 		t.Error("Expected record to be updated, but wasn't")
 	}
 
-	if !smsg.Recycle {
+	if smsg.Flush == nil {
 		t.Error("Expected Recycle Flag in Smsg to be set, but it wasn't")
 	}
 
