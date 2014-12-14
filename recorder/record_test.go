@@ -7,7 +7,7 @@ import (
 
 func TestSortRecordByDate(t *testing.T) {
 
-	transactionOrder := []string{"A", "B", "C", "A"}
+	nameOrder := []string{"A", "B", "C", "A"}
 
 	dateA := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
 	dateB := time.Date(2009, time.November, 11, 23, 0, 0, 0, time.UTC)
@@ -15,21 +15,21 @@ func TestSortRecordByDate(t *testing.T) {
 
 	r := Recorder{}
 
-	r.Add(Record{Date: dateC, Transaction: "C"})
-	r.Add(Record{Date: dateA, Transaction: "A"})
-	r.Add(Record{Date: dateB, Transaction: "B"})
+	r.Add(Record{Date: dateC, Name: "C"})
+	r.Add(Record{Date: dateA, Name: "A"})
+	r.Add(Record{Date: dateB, Name: "B"})
 
 	r.SortBy("date")
 
-	r.Add(Record{Date: dateC, Transaction: "A"})
+	r.Add(Record{Date: dateC, Name: "A"})
 
 	r.SortBy("date")
 
 	recs := r.Recs
 
 	for i := 0; i < len(r.Recs); i++ {
-		if recs[i].Transaction != transactionOrder[i] {
-			t.Error("Expected ", transactionOrder[i], "got", recs[i].Transaction)
+		if recs[i].Name != nameOrder[i] {
+			t.Error("Expected ", nameOrder[i], "got", recs[i].Name)
 		}
 
 	}
@@ -38,18 +38,18 @@ func TestSortRecordByDate(t *testing.T) {
 func TestSortRecordByName(t *testing.T) {
 
 	r := Recorder{}
-	r.Add(Record{Transaction: "b"})
-	r.Add(Record{Transaction: "a"})
-	r.Add(Record{Transaction: "c"})
-	r.Add(Record{Transaction: "a"})
+	r.Add(Record{Name: "b"})
+	r.Add(Record{Name: "a"})
+	r.Add(Record{Name: "c"})
+	r.Add(Record{Name: "a"})
 
-	r.SortBy("transaction")
+	r.SortBy("name")
 
-	if r.Recs[0].Transaction != "a" ||
-		r.Recs[1].Transaction != "a" ||
-		r.Recs[2].Transaction != "b" ||
-		r.Recs[3].Transaction != "c" {
+	if r.Recs[0].Name != "a" ||
+		r.Recs[1].Name != "a" ||
+		r.Recs[2].Name != "b" ||
+		r.Recs[3].Name != "c" {
 
-		t.Error("Transactions failed to sort by name")
+		t.Error("Names failed to sort by name")
 	}
 }

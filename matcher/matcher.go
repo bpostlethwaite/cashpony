@@ -8,11 +8,12 @@ import (
 )
 
 // A match holds the match distance,
-// and the label value the match was
+// and the Label value the match was
 // applied to. (should also hold the needle)
 type match struct {
-	dist  int
-	label string
+	Index int
+	Dist  int
+	Label string
 }
 
 type matches []match
@@ -22,7 +23,7 @@ func (slice matches) Len() int {
 }
 
 func (slice matches) Less(i, j int) bool {
-	return slice[i].dist <= slice[j].dist
+	return slice[i].Dist <= slice[j].Dist
 }
 
 func (slice matches) Swap(i, j int) {
@@ -37,7 +38,17 @@ func (slice matches) Labels() []string {
 	v := make([]string, len(slice))
 
 	for i, m := range slice {
-		v[i] = m.label
+		v[i] = m.Label
+	}
+
+	return v
+}
+
+func (slice matches) Indicies() []int {
+	v := make([]int, len(slice))
+
+	for i, m := range slice {
+		v[i] = m.Index
 	}
 
 	return v
@@ -56,9 +67,9 @@ func NewMatch(needle string, haystack []string) *matcher {
 	}
 
 	cost := fuzzy.LevenshteinCost{
-		Del:  1,
-		Ins:  1,
-		Subs: 1,
+		Del:  50,
+		Ins:  5,
+		Subs: 3,
 	}
 
 	m.matches = make([]match, len(haystack))
@@ -67,56 +78,57 @@ func NewMatch(needle string, haystack []string) *matcher {
 		needle := strings.ToLower(m.needle)
 		hay = strings.ToLower(hay)
 		m.matches[i] = match{
-			dist:  fuzzy.Levenshtein(needle, hay, &cost),
-			label: hay,
+			Index: i,
+			Dist:  fuzzy.Levenshtein(needle, hay, &cost),
+			Label: hay,
 		}
 	}
 
 	return m
 }
 
-// All return All match labels in sorted order
+// All return All match Labels in sorted order
 // of match distance.
-func (this *matcher) List() []string {
+func (this *matcher) All() matches {
 
 	this.matches.Sort()
 
-	return this.matches.Labels()
+	return this.matches
 }
 
 // If maxDist is -1 return matches with equal distance
 // else return matches with distances less than or equal to
 // maxDist
-func (this *matcher) Top(maxDist int) []string {
+func (this *matcher) Top(maxDist int) matches {
 
 	this.matches.Sort()
 
-	var index int
+	var idx int
 	for i := 0; i < len(this.matches)-1; i++ {
-		index = i
+		idx = i
 		if maxDist == -1 {
-			if this.matches[i].dist != this.matches[i+1].dist {
-				index++
+			if this.matches[i].Dist != this.matches[i+1].Dist {
+				idx++
 				break
 			}
-		} else if this.matches[i].dist > maxDist {
+		} else if this.matches[i].Dist > maxDist {
 			break
 		}
 	}
 
-	return this.matches[:index].Labels()
+	return this.matches[:idx]
 }
 
 // If maxDist is -1 return matches with equal distance
 // else return matches with distances less than or equal to
 // maxDist
-func (this *matcher) Best(maxDist int) string {
+func (this *matcher) Best(maxDist int) *match {
 
 	this.matches.Sort()
 
-	if this.matches[0].dist > maxDist {
-		return ""
+	if this.matches[0].Dist > maxDist {
+		return nil
 	}
 
-	return this.matches[0].label
+	return &this.matches[0]
 }

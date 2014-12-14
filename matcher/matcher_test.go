@@ -20,10 +20,10 @@ func TestSort(t *testing.T) {
 
 	matches := NewMatch(needle, haystack)
 
-	for i, m := range matches.List() {
+	for i, m := range matches.All() {
 		// should produces sorted string arrag
 		// aaaaa baaaa bbaaa ...
-		nb := strings.Count(m, "b")
+		nb := strings.Count(m.Label, "b")
 		if nb != i {
 			t.Error("Match failed to sort string")
 		}
@@ -52,7 +52,7 @@ func TestTopSingle(t *testing.T) {
 	}
 
 	for i := range tops {
-		if tops[i] != needle {
+		if tops[i].Label != needle {
 			t.Error("Match failed to pick correct top matches")
 		}
 	}

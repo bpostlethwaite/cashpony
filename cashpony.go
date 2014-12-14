@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"path/filepath"
 
@@ -19,26 +18,21 @@ func main() {
 		log.Fatal("fatal filepath %s", err)
 	}
 
-	tor := transact.NewTransact(dir)
-	lab := label.NewLabeller(filepath.Join(dir, "labels.json"))
+	transacter := transact.NewTransact(dir)
+	labeller := label.NewLabeller(filepath.Join(dir, "labels.json"))
+
+	// regular always-on Smsg channels
+	transacter.Pipe(labeller)
+	labeller.Pipe(recorder)
+	recorder.Pipe(client)
+	client.Pipe(labeller)
+
+	// flush channels. (channels of channels)
+	labeller.FlushFrom(recorder)
+	client.FlushFrom(recorder)
 
 	server := web.WebClient
 
-	serverMsg := server.Msg
-
 	go server.ListenAndServe()
 
-	for {
-		select {
-		case <-serverMsg.Out:
-			for _, rec := range tor.Transactions {
-				json, err := rec.Json()
-				if err != nil {
-					fmt.Println("could not marshal record")
-				} else {
-					serverMsg.In <- json
-				}
-			}
-		}
-	}
 }

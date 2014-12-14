@@ -26,17 +26,17 @@ type Recorder struct {
 type Records []Record
 
 type Record struct {
-	Id          string    `json:"id"`
-	Date        time.Time `json:"date"`
-	Transaction string    `json:"transaction"`
-	Debit       float64   `json:"debit"`
-	Label       string    `json:"label"`
-	Updated     bool
+	Id      string    `json:"id"`
+	Date    time.Time `json:"date"`
+	Name    string    `json:"name"`
+	Debit   float64   `json:"debit"`
+	Label   string    `json:"label"`
+	Updated bool
 }
 
 func (this *Record) String() string {
 	return fmt.Sprintf("date:      %s\n", this.Date.String()) +
-		fmt.Sprintf("transaction:  %s\n", this.Transaction) +
+		fmt.Sprintf("name:  %s\n", this.Name) +
 		fmt.Sprintf("debit:        %.2f\n", this.Debit) +
 		fmt.Sprintf("label:        %s", this.Label)
 }
@@ -59,8 +59,8 @@ func (r *Recorder) Less(i, j int) bool {
 	s := r.Recs
 
 	switch r.sortMode {
-	case "transaction":
-		return s[i].Transaction < s[j].Transaction
+	case "name":
+		return s[i].Name < s[j].Name
 
 	case "label":
 		return s[i].Label < s[j].Label

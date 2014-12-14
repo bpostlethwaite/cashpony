@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sync"
 
 	"github.com/bpostlethwaite/cashpony/matcher"
 	"github.com/bpostlethwaite/cashpony/message"
@@ -24,93 +25,126 @@ var Labels = map[string]bool{
 const matchDistance = 1
 
 type labeller struct {
+	*message.Piped
 	dbfile    string
 	labels    map[string]string
 	matchDist int
+	in        chan *message.Smsg
+}
+
+type pairs struct {
+	keys   []string
+	labels []string
 }
 
 func NewLabeller(dbfile string) *labeller {
-	labeller := &labeller{dbfile: dbfile}
+	l := &labeller{
+		Piped: &message.Piped{
+			ReadFrom: make(chan *message.Smsg, 5),
+			WriteTo:  make(chan *message.Smsg, 5),
+		},
+		dbfile:    dbfile,
+		matchDist: matchDistance,
+	}
 
-	labeller.LoadLabels()
-	labeller.matchDist = matchDistance
+	l.LoadLabels()
+	l.start(1)
 
-	return labeller
+	return l
 }
 
 func (this *labeller) MatchLabel(name string, maxDist int) string {
 
+	pairs := this.Pairs()
+
 	matches := matcher.NewMatch(
 		name,
-		this.Values(),
+		pairs.keys,
 	)
 
-	return matches.Best(maxDist)
+	idx := matches.Best(maxDist).Index
+
+	return pairs.labels[idx]
 }
 
-func (this *labeller) AddLabel(rec recorder.Record) {
-	name := rec.Transaction
+func (this *labeller) AddLabel(rec recorder.Record) *sync.WaitGroup {
+	name := rec.Name
 	label := rec.Label
 
 	this.labels[name] = label
 
-	go this.SaveLabels()
+	return this.SaveLabels()
 }
 
-func (this *labeller) Pipe(in <-chan *message.Smsg) <-chan *message.Smsg {
+func (this *labeller) start(n int) {
 
-	out := make(chan *message.Smsg, 10)
+	var smsg *message.Smsg
+
+	if n < 1 {
+		panic("can't start a pipe with n less than 1")
+	}
+
+	// Define a processing function
+	process := func() {
+		for smsg = range this.WriteTo {
+
+			rec := smsg.Record
+			name := rec.Name
+
+			// if this is a label-update then apply the label to the store and
+			// mark this label as updated.
+			if smsg.LabelUpdate {
+				smsg.LabelUpdate = false
+
+				this.labels[name] = rec.Label
+
+				rec.Updated = true
+				smsg.Recycle = true
+
+				this.ReadFrom <- smsg
+				continue
+			}
+
+			// else see if we can match a label to this record
+			label := this.MatchLabel(name, this.matchDist)
+
+			if label != "" && label != rec.Label {
+				rec.Updated = true
+				rec.Label = label
+			}
+
+			this.ReadFrom <- smsg
+		}
+	}
+
+	// Call it concurrently
+	for i := 0; i < n; i++ {
+		go process()
+	}
+
+}
+
+func (this *labeller) SaveLabels() *sync.WaitGroup {
+
+	var wg sync.WaitGroup
+
+	wg.Add(1)
 
 	go func() {
 
-		for smsg := range in {
-			out <- this.process(smsg)
+		j, err := json.Marshal(this.labels)
+		if err != nil {
+			panic(err)
 		}
+
+		err = ioutil.WriteFile(this.dbfile, j, 0644)
+		if err != nil {
+			panic(err)
+		}
+		wg.Done()
 	}()
 
-	return out
-}
-
-func (this *labeller) process(smsg *message.Smsg) *message.Smsg {
-
-	rec := smsg.Record
-	name := rec.Transaction
-
-	// if this is a label-update then apply the label to the store and
-	// mark this label as updated. Also add a
-	if smsg.LabelUpdate {
-		smsg.LabelUpdate = false
-
-		this.labels[name] = rec.Label
-
-		rec.Updated = true
-		smsg.Recycle = true
-
-		return smsg
-	}
-
-	// else see if we can match a label to this record
-	label := this.MatchLabel(name, this.matchDist)
-
-	if label != "" && label != rec.Label {
-		rec.Updated = true
-		rec.Label = label
-	}
-
-	return smsg
-}
-
-func (this *labeller) SaveLabels() {
-
-	j, err := json.Marshal(this.labels)
-	if err != nil {
-		panic(err)
-	}
-
-	err = ioutil.WriteFile(this.dbfile, j, 0644)
-	if err != nil {
-		panic(err)
-	}
+	return &wg
 }
 
 func (this *labeller) LoadLabels() {
@@ -123,16 +157,20 @@ func (this *labeller) LoadLabels() {
 	json.Unmarshal(file, &this.labels)
 }
 
-func (this *labeller) Values() []string {
-	v := make([]string, this.Len())
+func (this *labeller) Pairs() pairs {
+	p := pairs{
+		keys:   make([]string, this.Len()),
+		labels: make([]string, this.Len()),
+	}
 
 	idx := 0
-	for _, value := range this.labels {
-		v[idx] = value
+	for k, v := range this.labels {
+		p.keys[idx] = k
+		p.labels[idx] = v
 		idx++
 	}
 
-	return v
+	return p
 }
 
 func (this *labeller) Len() int {
@@ -145,5 +183,4 @@ func (this *labeller) String() string {
 		str += k + " : " + v + "\n"
 	}
 	return str
-
 }

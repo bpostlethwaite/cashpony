@@ -10,23 +10,43 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/bpostlethwaite/cashpony/message"
 	"github.com/bpostlethwaite/cashpony/recorder"
 )
 
-type Transact struct {
-	datadir      string
-	Transactions recorder.Records
+type transact struct {
+	datadir string
+	pipe    chan *message.Smsg
 }
 
-func NewTransact(datadir string) *Transact {
-	transact := &Transact{datadir: datadir}
+func NewTransact(datadir string) *transact {
+	transact := &transact{datadir: datadir}
 
+	this.pipe = make(chan *message.Smsg, 100)
 	transact.LoadAll()
+
 	return transact
 
 }
 
-func (this *Transact) LoadAll() {
+func (this *transact) Pipe(pipee *message.Pipeline) {
+	// transacter.Pipe(labeller)
+
+	var smsg *message.Smsg
+	thispipe := this.pipe
+	thatpipe := pipee.Fitting()
+
+	go func() {
+		select {
+		case smsg = <-thispipe:
+			// forward
+			thatpipe <- smsg
+		}
+	}()
+
+}
+
+func (this *transact) LoadAll() {
 	files, _ := ioutil.ReadDir(this.datadir)
 	for _, f := range files {
 		if filepath.Ext(f.Name()) != "csv" {
@@ -38,7 +58,7 @@ func (this *Transact) LoadAll() {
 
 }
 
-func (this *Transact) LoadCSV(file string, template csvTemplate) {
+func (this *transact) LoadCSV(file string, template csvTemplate) {
 	csvfile, err := os.Open(file)
 	if err != nil {
 		fmt.Println("transact csv open error", err)
@@ -71,13 +91,21 @@ func (this *Transact) LoadCSV(file string, template csvTemplate) {
 			debit = 0.0
 		}
 
-		t := recorder.Record{
-			Date:        date,
-			Transaction: transaction,
-			Debit:       debit,
-			Id:          file + ":" + string(i),
+		r := recorder.Record{
+			Date:  date,
+			Name:  transaction,
+			Debit: debit,
+			Id:    file + ":" + string(i),
 		}
 
-		this.Transactions = append(this.Transactions, t)
+		smsg := &message.Smsg{
+			Record: &r,
+		}
+
+		go func() {
+
+			this.pipe <- smsg
+
+		}()
 	}
 }
