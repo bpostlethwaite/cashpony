@@ -18,11 +18,12 @@ func main() {
 	if err != nil {
 		log.Fatal("fatal filepath %s", err)
 	}
-	transacter := transact.NewTransact(dir)
-	labeller := label.NewLabeller(filepath.Join(dir, "labels.json"))
-	stager := stage.NewStage()
 
-	server := web.NewServer()
+	transacter := transact.NewTransact(dir, 0)
+	labeller := label.NewLabeller(filepath.Join(dir, "labels.json"), 0, 0)
+	stager := stage.NewStage(0, 0)
+
+	server := web.NewServer(0, 0)
 	hub := server.Hub
 
 	transacter.Pipe(labeller)

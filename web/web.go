@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -14,7 +15,7 @@ type Server struct {
 	Hub *hub
 }
 
-func NewServer() *Server {
+func NewServer(rf, wt int) *Server {
 
 	server := &Server{
 		Hub: &hub{
@@ -22,8 +23,8 @@ func NewServer() *Server {
 			unregister:  make(chan *connection),
 			connections: make(map[*connection]bool),
 			Piped: &piper.Piped{
-				ReadFrom: make(chan message.Smsg, 5),
-				WriteTo:  make(chan message.Smsg, 5),
+				ReadFrom: make(chan message.Smsg, rf),
+				WriteTo:  make(chan message.Smsg, wt),
 			},
 		},
 	}
@@ -33,7 +34,7 @@ func NewServer() *Server {
 
 func (server *Server) ListenAndServe() {
 
-	server.Hub.run()
+	go server.Hub.run()
 
 	http.Handle("/", http.FileServer(rice.MustFindBox("static").HTTPBox()))
 
@@ -49,7 +50,7 @@ var upgrader = &websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
 func (server *Server) wsHandler(w http.ResponseWriter, r *http.Request) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		return
+		fmt.Println(err)
 	}
 
 	c := &connection{

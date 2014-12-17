@@ -1277,20 +1277,49 @@ textarea {
 }
 
 .barcolor:after {
- background: #C04B4B;
+    background: #C04B4B;
 }
 
 .barcolor:before {
- background: #C04B4B;
+    background: #C04B4B;
 }
-
-/* .headercolor { */
-/*     background-color: #ED9B9B; */
-/* } */
 
 td {
     vertical-align: inherit !important;
 }
+
+table {
+    margin-top: 300px;
+}
+
+#reporter {
+    float: left;
+    width: 40%;
+    height: 300px;
+    padding-top: 18px;
+    padding-left: 5px;
+}
+
+#plot {
+    width: 60%;
+    height: 300px;
+}
+
+#topbar {
+    position: fixed;
+    top: 0;
+    z-index: 99;
+    width: 100%;
+    background-color: #fff;
+}
+
+#banner {
+    position: absolute;
+    top: 0;
+    right: 48%;
+    font-size: 24px;
+}
+
 
 /* ================================================================== *\
    Print ($print)

@@ -1,6 +1,8 @@
 package web
 
 import (
+	"fmt"
+
 	"github.com/bpostlethwaite/cashpony/message"
 	"github.com/bpostlethwaite/cashpony/piper"
 )
@@ -24,7 +26,7 @@ func (this *hub) flush(c *connection) {
 	flush := make(chan message.Smsg)
 
 	smsg := message.Smsg{
-		Flush: flush,
+		Flush: &flush,
 	}
 
 	this.ReadFrom <- smsg
@@ -36,6 +38,8 @@ func (this *hub) flush(c *connection) {
 	// once flushed add connection
 	// to pool to receive updates
 	this.connections[c] = true
+
+	fmt.Println("Hub finishing flush")
 }
 
 func (this *hub) run() {
@@ -44,28 +48,27 @@ func (this *hub) run() {
 		case c := <-this.register:
 			// first flush all records to conn
 			// then add to connectrion pool
+			fmt.Println("receiving a connection")
 			go this.flush(c)
 			go func() {
 				for smsg := range c.recv {
+					fmt.Println("Incoming from client", smsg)
 					this.ReadFrom <- smsg
 				}
 			}()
 
 		case c := <-this.unregister:
 			if _, ok := this.connections[c]; ok {
+				fmt.Print("/////////////// Unregistering connection and closing")
 				delete(this.connections, c)
 				close(c.send)
+				close(c.recv)
 			}
 
 		// broadcast system update messages to all clients
 		case m := <-this.WriteTo:
 			for c := range this.connections {
-				select {
-				case c.send <- m:
-				default:
-					delete(this.connections, c)
-					close(c.send)
-				}
+				c.send <- m
 			}
 		}
 	}

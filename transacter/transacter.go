@@ -20,11 +20,11 @@ type transact struct {
 	datadir string
 }
 
-func NewTransact(datadir string) *transact {
+func NewTransact(datadir string, rn int) *transact {
 	t := &transact{
 		Piped: &piper.Piped{
-			ReadFrom: make(chan message.Smsg, 5),
-			WriteTo:  make(chan message.Smsg, 5),
+			ReadFrom: make(chan message.Smsg, rn),
+			WriteTo:  make(chan message.Smsg, 0),
 		},
 		datadir: datadir,
 	}
@@ -41,13 +41,13 @@ func (this *transact) LoadAll() {
 		if filepath.Ext(f.Name()) != ".csv" {
 			continue
 		}
-		fname := filepath.Join(this.datadir, f.Name())
-		this.LoadCSV(fname, TDCC)
+		fpath := filepath.Join(this.datadir, f.Name())
+		this.LoadCSV(fpath, f.Name(), TDCC)
 	}
 
 }
 
-func (this *transact) LoadCSV(file string, template csvTemplate) {
+func (this *transact) LoadCSV(file string, fname string, template csvTemplate) {
 	csvfile, err := os.Open(file)
 	if err != nil {
 		fmt.Println("transact csv open error", err)
@@ -84,7 +84,7 @@ func (this *transact) LoadCSV(file string, template csvTemplate) {
 			Date:  date,
 			Name:  transaction,
 			Debit: debit,
-			Id:    file + ":" + string(i),
+			Id:    fname + ":" + strconv.Itoa(i),
 		}
 
 		smsg := message.Smsg{
@@ -93,6 +93,7 @@ func (this *transact) LoadCSV(file string, template csvTemplate) {
 
 		go func() {
 			this.WriteTo <- smsg
+			// fmt.Println("Transactor wrote", r.Name)
 		}()
 	}
 }

@@ -27,9 +27,10 @@ const matchDistance = 1
 
 type labeller struct {
 	*piper.Piped
-	dbfile    string
-	labels    map[string]string
-	matchDist int
+	dbfile       string
+	labels       map[string]string
+	matchDist    int
+	defaultLabel string
 }
 
 type pairs struct {
@@ -37,14 +38,15 @@ type pairs struct {
 	labels []string
 }
 
-func NewLabeller(dbfile string) *labeller {
+func NewLabeller(dbfile string, rf, wt int) *labeller {
 	l := &labeller{
 		Piped: &piper.Piped{
-			ReadFrom: make(chan message.Smsg, 5),
-			WriteTo:  make(chan message.Smsg, 5),
+			ReadFrom: make(chan message.Smsg, rf),
+			WriteTo:  make(chan message.Smsg, wt),
 		},
-		dbfile:    dbfile,
-		matchDist: matchDistance,
+		dbfile:       dbfile,
+		matchDist:    matchDistance,
+		defaultLabel: "Unknown",
 	}
 
 	l.LoadLabels()
@@ -74,6 +76,7 @@ func (this *labeller) AddLabel(rec record.Record) *sync.WaitGroup {
 	label := rec.Label
 
 	this.labels[name] = label
+	fmt.Println("Labeller adding name:label", name, label)
 
 	return this.SaveLabels()
 }
@@ -89,11 +92,8 @@ func (this *labeller) start(n int) {
 	// Define a processing function
 	process := func() {
 		for smsg = range this.WriteTo {
-
-			// grab the pointer to this Rec as we are going to update
-			// its fields
+			// grab the pointer to this Rec as we are going to update it's fields
 			rec := &smsg.Record
-
 			name := rec.Name
 
 			// if this is a label-update then apply the label to the store and
@@ -101,24 +101,46 @@ func (this *labeller) start(n int) {
 			if smsg.LabelUpdate {
 				smsg.LabelUpdate = false
 
-				this.labels[name] = rec.Label
+				this.AddLabel(*rec)
 
 				// Right now we are flush on the main write channel
 				// should investigate setting up an temporary channel
 				// just for this.
-				smsg.Flush = this.WriteTo
+				flush := make(chan message.Smsg)
+				smsg.Flush = &flush
 
+				go func() {
+					// eventually wrap this up in a flush Type
+					for smsg = range flush {
+						// to ensure we don't get any infinite loopies
+						smsg.LabelUpdate = false
+
+						this.WriteTo <- smsg
+					}
+
+					fmt.Println("Labeller finishing flush")
+				}()
+
+				// fmt.Println("Labeller Label Update", name)
 				this.ReadFrom <- smsg
 				continue
 			}
 
 			// else see if we can match a label to this record
 			label, err := this.MatchLabel(name, this.matchDist)
-			if err != nil {
+			if err == nil {
+				fmt.Println("Found a match!", name, label)
 				if label != rec.Label {
 					rec.Updated = true
 					rec.Label = label
 				}
+			}
+
+			// if this label is till blank, lets assign it a default
+			if rec.Label == "" {
+				// fmt.Println("Applying default Label")
+				rec.Label = this.defaultLabel
+
 			}
 
 			this.ReadFrom <- smsg

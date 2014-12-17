@@ -20,10 +20,11 @@ type Record struct {
 // func (this *Recorder)
 
 func (this *Record) String() string {
-	return fmt.Sprintf("date:      %s\n", this.Date.String()) +
+	return fmt.Sprintf("id:        %s\n", this.Id) +
+		fmt.Sprintf("date:      %s\n", this.Date.String()) +
 		fmt.Sprintf("name:  %s\n", this.Name) +
 		fmt.Sprintf("debit:        %.2f\n", this.Debit) +
-		fmt.Sprintf("label:        %s", this.Label)
+		fmt.Sprintf("label:        %s\n", this.Label)
 }
 
 func (this *Record) Json() ([]byte, error) {
@@ -31,7 +32,7 @@ func (this *Record) Json() ([]byte, error) {
 	return j, err
 }
 
-func (this *Record) UpdateWith(rec *Record) bool {
+func (this *Record) UpdateWith(rec Record) bool {
 
 	updated := false
 	if this.Id != rec.Id {
@@ -54,10 +55,12 @@ func (this *Record) UpdateWith(rec *Record) bool {
 		this.Label = rec.Label
 		updated = true
 	}
-	if this.Updated != rec.Updated {
-		this.Updated = rec.Updated
-		updated = true
-	}
 
 	return updated
+}
+
+func (this *Record) IsEmpty() bool {
+
+	return *this == Record{}
+
 }

@@ -1,15 +1,37 @@
+var EventEmitter = require('events').EventEmitter;
+var inherits = require('util').inherits;
+
 function Record (data) {
 
-    var elem = document.createElement('tr');
+    EventEmitter.call(this);
+
+    var _elem = document.createElement('tr');
     var configured = false;
 
-    elem.innerHTML = this.template;
-    elem.id = this.id = data.id;
+    _elem.innerHTML = this.template;
+    _elem.id = this.id = data.id;
 
-    this.elem = elem;
-    this.inject( data );
+    this.name = '';
+    this.date = '';
+    this.debit = null;
+    this.label = '';
+
+    this._elem = _elem;
+
+    // Add labels then inject!
     this.addLabels( this.labels );
+    this.inject( data );
+
+    var self = this;
+    // Add dynamic interation
+    this._elem.querySelector('select')
+        .addEventListener('change', function (ev) {
+            self.label = ev.target.value;
+            self.emit('update', {label: self.label});
+        });
 }
+
+inherits(Record, EventEmitter);
 
 module.exports = Record;
 
@@ -24,17 +46,23 @@ Record.prototype.labels = [
 ];
 
 Record.prototype.inject = function (data) {
-    var date   = data.date;
-    var trans  = data.transaction;
-    var debit  = data.debit;
-    var label = data.label;
+    this.name = data.name;
+    this.date = data.date;
+    this.debit = data.debit;
+    this.label = data.label;
 
     var fields = this.getFields();
 
-    this.injectDate(date, fields[0]);
-    this.injectTrans(trans, fields[1]);
-    this.injectDebit(debit, fields[2]);
-    this.injectLabel(label, fields[3]);
+    this.injectDate (this.date, fields[0]);
+    this.injectTrans(this.name, fields[1]);
+    this.injectDebit(this.debit, fields[2]);
+    this.injectLabel(this.label, fields[3]);
+};
+
+Record.prototype.getFields = function () {
+    var row = this._elem;
+    var tds = row.querySelectorAll('td');
+    return [].slice.call(tds);
 };
 
 Record.prototype.injectDate = function (dateStr, td) {
@@ -66,23 +94,17 @@ Record.prototype.injectLabel = function (option, td) {
         return;
     }
 
-    var select = this.elem.querySelector('select');
+    var select = td.querySelector('select');
     select.value = option;
 };
 
-Record.prototype.getFields = function () {
-    var row = this.elem;
-    var tds = row.querySelectorAll('td');
-    return [].slice.call(tds);
-};
-
 Record.prototype.clearLabels = function () {
-    var select = this.elem.querySelector('select');
+    var select = this._elem.querySelector('select');
     for (var i = select.length-1; i >= 0; i--) select.remove(i);
 };
 
 Record.prototype.addLabels = function (options) {
-    var select = this.elem.querySelector('select');
+    var select = this._elem.querySelector('select');
 
     options.forEach( function (option) {
         var opt = document.createElement("option");
@@ -91,6 +113,14 @@ Record.prototype.addLabels = function (options) {
 
         select.add(opt);
     });
+};
+
+Record.prototype.toString = function () {
+    function formatter(key, value) {
+        if (key[0] === '_') return undefined;
+        else return value;
+    }
+    return JSON.stringify(this, formatter, 2);
 };
 
 Record.prototype.template =

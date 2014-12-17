@@ -26,11 +26,11 @@ type Stage struct {
 	sortMode string
 }
 
-func NewStage() *Stage {
+func NewStage(rf, wt int) *Stage {
 	r := &Stage{
 		Piped: &piper.Piped{
-			ReadFrom: make(chan message.Smsg, 5),
-			WriteTo:  make(chan message.Smsg, 5),
+			ReadFrom: make(chan message.Smsg, rf),
+			WriteTo:  make(chan message.Smsg, wt),
 		},
 		sortMode: "date",
 	}
@@ -51,41 +51,46 @@ func (this *Stage) start(n int) {
 
 				var updated bool
 
-				rec := &smsg.Record            // ptr to Incoming smsg Rec
-				rin := this.lookUpById(rec.Id) // ptr to Internally stored Rec
+				// is this a system message or a record w/ info
+				if smsg.HasRecInfo() {
 
-				// swap out rec for stored db item rin. First
-				// apply updates from rec to rin, then continue
-				// to modify rin disposing of rec.
-				if rin == nil {
-					// add record to database, rin is now pointer to stored rec
-					this.Add(*rec)
-					rin = this.lookUpById(rec.Id)
-					updated = true
-				} else {
-					// update stored record r
-					updated = rin.UpdateWith(rec)
-				}
+					rec := &smsg.Record            // ptr to Incoming smsg Rec
+					rin := this.lookUpById(rec.Id) // ptr to Internally stored Rec
 
-				// replace the record
+					// swap out rec for stored db item rin. First
+					// apply updates from rec to rin, then continue
+					// to modify rin disposing of rec.
+					if rin == nil {
+						// add record to database, rin is now pointer to stored rec
+						this.Add(*rec)
+						rin = this.lookUpById(rec.Id)
+						updated = true
+					} else {
+						// update stored record r
+						updated = rin.UpdateWith(*rec)
+					}
 
-				// No longer use rec, we now use pointer to
-				// stored record r
-				if updated {
-					// send to Client on update channel
-
-					this.ReadFrom <- smsg
+					// No longer use rec, we now use pointer to
+					// stored record r
+					if updated {
+						// send to Client on update channel
+						fmt.Println("stage sending on update", rin)
+						this.ReadFrom <- smsg
+					}
 				}
 
 				if smsg.Flush != nil {
+					fmt.Println("stage asked for Flush")
 					go func() {
+						flush := *smsg.Flush
 						for _, r := range this.Recs {
 							smsg := message.Smsg{
 								Record: r,
 							}
-							smsg.Flush <- smsg
+							// fmt.Println("writing flush rec", r.Name)
+							flush <- smsg
 						}
-						close(smsg.Flush)
+						close(flush)
 						smsg.Flush = nil
 					}()
 				}
@@ -99,6 +104,7 @@ func (this *Stage) Add(rec record.Record) {
 }
 
 func (this *Stage) lookUpById(id string) *record.Record {
+
 	for i := 0; i < len(this.Recs); i++ {
 		if this.Recs[i].Id == id {
 			return &this.Recs[i]

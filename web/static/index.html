@@ -1,13 +1,69 @@
 <html>
   <head>
-    <title>Chat Example</title>
+    <title>Cash Pony</title>
     <link rel="stylesheet" href="css/main.css">
   </head>
   <body>
 
-    <header style="overflow:hidden">
-      <h3 class="crossbars barcolor">cashpony</h3>
-    </header>
+    <div id="topbar">
+
+
+      <div id="banner">
+        CashPony
+      </div>
+
+
+      <div id="reporter">
+
+        <div class="grid">
+
+          <div class="grid-item medium-one-fourth large-one-third">
+            <label for="form2-input_radioset">Chart Types</label>
+          </div>
+
+          <p class="grid-item medium-three-fourths large-two-thirds">
+            <label><input type="radio" name="form2-input_radioset"> Bar Chart</label><br>
+            <label><input type="radio" name="form2-input_radioset"> Time Series</label><br>
+            <label><input type="radio" name="form2-input_radioset"> Bubble Chart</label><br>
+          </p>
+
+          <p class="grid-item medium-one-half large-one-half">
+            <label><input type="date"></label>
+          </p>
+          <p class="grid-item medium-one-half large-one-half">
+            <label><input type="date"></label>
+          </p>
+
+          <p class="grid-item medium-one-third large-one-third">
+            <label><input type="checkbox"> Household</label><br>
+            <label><input type="checkbox"> Dining</label><br>
+            <label><input type="checkbox"> Transit</label><br>
+          </p>
+          <p class="grid-item medium-one-third large-one-third">
+            <label><input type="checkbox"> Food</label><br>
+            <label><input type="checkbox"> Clothing</label><br>
+          </p>
+          <p class="grid-item medium-one-third large-one-third">
+            <label><input type="checkbox"> Misc</label><br>
+            <label><input type="checkbox"> Unknown</label><br>
+          </p>
+
+          <div class="grid-item medium-one-fourth large-one-third"></div>
+
+          <div class="grid-item medium-three-fourths large-two-thirds">
+            <input type="submit" class="button button-primary">
+            <input type="reset" class="button" value="Clear">
+          </div>
+        </div>
+
+
+      </div>
+
+      <iframe id="plot" frameborder="0" seamless="seamless" scrolling="no" src="https://plot.ly/~chris/3287.embed"></iframe>
+
+
+    </div>
+
 
     <table class="table-border-rows">
       <tbody>

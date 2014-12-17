@@ -23,13 +23,13 @@ func (c *connection) reader() {
 	for {
 		_, msg, err := c.ws.ReadMessage()
 		if err != nil {
-			fmt.Println("Error reading incoming msg from client")
+			fmt.Println("Error reading incoming msg from client: ", err)
 			break
 		}
 		smsg := message.Smsg{}
 		err = json.Unmarshal(msg, &smsg)
 		if err != nil {
-			log.Fatal("couldn't parse incoming client message", err)
+			log.Fatal("couldn't parse incoming client message: ", err, string(msg))
 			continue
 		}
 		// send message into system
