@@ -1,6 +1,7 @@
 package matcher
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 
@@ -122,13 +123,13 @@ func (this *matcher) Top(maxDist int) matches {
 // If maxDist is -1 return matches with equal distance
 // else return matches with distances less than or equal to
 // maxDist
-func (this *matcher) Best(maxDist int) *match {
+func (this *matcher) Best(maxDist int) (*match, error) {
 
 	this.matches.Sort()
 
 	if this.matches[0].Dist > maxDist {
-		return nil
+		return nil, fmt.Errorf("no match")
 	}
 
-	return &this.matches[0]
+	return &this.matches[0], nil
 }

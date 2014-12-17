@@ -5,41 +5,66 @@ import (
 	"net/http"
 
 	"github.com/GeertJohan/go.rice"
+	"github.com/bpostlethwaite/cashpony/message"
+	"github.com/bpostlethwaite/cashpony/piper"
+	"github.com/gorilla/websocket"
 )
 
-type ServerHub struct {
-	Msg MsgChan
+type Server struct {
+	Hub *hub
 }
 
-type MsgChan struct {
-	In  chan []byte
-	Out chan []byte
-}
+func NewServer() *Server {
 
-var WebClient ServerHub
-
-func init() {
-
-	WebClient = ServerHub{
-		Msg: MsgChan{
-			In:  make(chan []byte),
-			Out: make(chan []byte),
+	server := &Server{
+		Hub: &hub{
+			register:    make(chan *connection),
+			unregister:  make(chan *connection),
+			connections: make(map[*connection]bool),
+			Piped: &piper.Piped{
+				ReadFrom: make(chan message.Smsg, 5),
+				WriteTo:  make(chan message.Smsg, 5),
+			},
 		},
 	}
 
+	return server
 }
 
-func (server *ServerHub) ListenAndServe() *MsgChan {
+func (server *Server) ListenAndServe() {
 
-	go h.run(server.Msg)
+	server.Hub.run()
 
 	http.Handle("/", http.FileServer(rice.MustFindBox("static").HTTPBox()))
 
-	http.HandleFunc("/ws", wsHandler)
+	http.HandleFunc("/ws", server.wsHandler)
 
 	if err := http.ListenAndServe(":8888", nil); err != nil {
 		log.Fatal("ListenAndServe:", err)
 	}
+}
 
-	return &server.Msg
+var upgrader = &websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
+
+func (server *Server) wsHandler(w http.ResponseWriter, r *http.Request) {
+	ws, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		return
+	}
+
+	c := &connection{
+		send: make(chan message.Smsg, 0),
+		recv: make(chan message.Smsg, 0),
+		ws:   ws,
+	}
+
+	server.Hub.register <- c
+
+	defer func() {
+		server.Hub.unregister <- c
+	}()
+
+	// init the connection
+	go c.reader()
+	go c.writer()
 }

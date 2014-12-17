@@ -1,9 +1,11 @@
 package web
 
 import (
+	"encoding/json"
 	"fmt"
-	"net/http"
+	"log"
 
+	"github.com/bpostlethwaite/cashpony/message"
 	"github.com/gorilla/websocket"
 )
 
@@ -12,42 +14,41 @@ type connection struct {
 	ws *websocket.Conn
 
 	// Buffered channel of outbound messages.
-	send chan []byte
+	// ws sends on chan []byte
+	send chan message.Smsg
+	recv chan message.Smsg
 }
 
-func (c *connection) outputChannel(smsg MsgChan) {
+func (c *connection) reader() {
 	for {
-		_, message, err := c.ws.ReadMessage()
+		_, msg, err := c.ws.ReadMessage()
 		if err != nil {
 			fmt.Println("Error reading incoming msg from client")
 			break
 		}
-		// send message out of server
-		smsg.Out <- message
+		smsg := message.Smsg{}
+		err = json.Unmarshal(msg, &smsg)
+		if err != nil {
+			log.Fatal("couldn't parse incoming client message", err)
+			continue
+		}
+		// send message into system
+		c.recv <- smsg
 	}
 	c.ws.Close()
+
 }
 
 func (c *connection) writer() {
-	for message := range c.send {
-		err := c.ws.WriteMessage(websocket.TextMessage, message)
+	for smsg := range c.send {
+		msg, err := json.Marshal(&smsg)
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = c.ws.WriteMessage(websocket.TextMessage, msg)
 		if err != nil {
 			break
 		}
 	}
 	c.ws.Close()
-}
-
-var upgrader = &websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
-
-func wsHandler(w http.ResponseWriter, r *http.Request) {
-	ws, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		return
-	}
-	c := &connection{send: make(chan []byte, 256), ws: ws}
-	h.register <- c
-	defer func() { h.unregister <- c }()
-	go c.writer()
-	c.outputChannel(WebClient.Msg)
 }

@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/bpostlethwaite/cashpony/labeller"
+	"github.com/bpostlethwaite/cashpony/stage"
 	"github.com/bpostlethwaite/cashpony/transacter"
 	"github.com/bpostlethwaite/cashpony/web"
 )
@@ -19,19 +20,16 @@ func main() {
 	}
 	transacter := transact.NewTransact(dir)
 	labeller := label.NewLabeller(filepath.Join(dir, "labels.json"))
+	stager := stage.NewStage()
 
-	// regular always-on Smsg channels
+	server := web.NewServer()
+	hub := server.Hub
+
 	transacter.Pipe(labeller)
-	labeller.Pipe(recorder)
-	recorder.Pipe(client)
-	client.Pipe(labeller)
+	labeller.Pipe(stager)
+	stager.Pipe(hub)
+	hub.Pipe(labeller)
 
-	// flush channels. (channels of channels)
-	labeller.FlushFrom(recorder)
-	client.FlushFrom(recorder)
-
-	server := web.WebClient
-
-	go server.ListenAndServe()
+	server.ListenAndServe()
 
 }

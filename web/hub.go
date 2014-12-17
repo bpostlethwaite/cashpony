@@ -1,6 +1,12 @@
 package web
 
+import (
+	"github.com/bpostlethwaite/cashpony/message"
+	"github.com/bpostlethwaite/cashpony/piper"
+)
+
 type hub struct {
+	*piper.Piped
 	// Registered connections.
 	connections map[*connection]bool
 
@@ -11,29 +17,53 @@ type hub struct {
 	unregister chan *connection
 }
 
-var h = hub{
-	register:    make(chan *connection),
-	unregister:  make(chan *connection),
-	connections: make(map[*connection]bool),
+func (this *hub) flush(c *connection) {
+	// send a msg into the sytem with a
+	// flush pipe and connect it to client
+
+	flush := make(chan message.Smsg)
+
+	smsg := message.Smsg{
+		Flush: flush,
+	}
+
+	this.ReadFrom <- smsg
+
+	for smsg = range flush {
+		c.send <- smsg
+	}
+
+	// once flushed add connection
+	// to pool to receive updates
+	this.connections[c] = true
 }
 
-func (h *hub) run(smsg MsgChan) {
+func (this *hub) run() {
 	for {
 		select {
-		case c := <-h.register:
-			h.connections[c] = true
-		case c := <-h.unregister:
-			if _, ok := h.connections[c]; ok {
-				delete(h.connections, c)
+		case c := <-this.register:
+			// first flush all records to conn
+			// then add to connectrion pool
+			go this.flush(c)
+			go func() {
+				for smsg := range c.recv {
+					this.ReadFrom <- smsg
+				}
+			}()
+
+		case c := <-this.unregister:
+			if _, ok := this.connections[c]; ok {
+				delete(this.connections, c)
 				close(c.send)
 			}
-		// broadcast inbound server messages to all clients
-		case m := <-smsg.In:
-			for c := range h.connections {
+
+		// broadcast system update messages to all clients
+		case m := <-this.WriteTo:
+			for c := range this.connections {
 				select {
 				case c.send <- m:
 				default:
-					delete(h.connections, c)
+					delete(this.connections, c)
 					close(c.send)
 				}
 			}

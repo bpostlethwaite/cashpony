@@ -7,7 +7,7 @@ type Piper interface {
 	Pipe(Piper) Piper
 	UnPipe()
 	WaitUnPipe()
-	start(int)
+	Destroy()
 }
 
 type Piped struct {
@@ -64,6 +64,15 @@ func (this *Piped) UnPipe() {
 
 func (this *Piped) WaitUnPipe() {
 	<-this.done
+}
+
+func (this *Piped) Destroy() {
+	if this.done != nil {
+		this.UnPipe()
+	}
+	this.done = nil
+	close(this.ReadFrom)
+	close(this.WriteTo)
 }
 
 // start - begin processing on the incoming WriteTo channel

@@ -78,8 +78,16 @@ func (this *Stage) start(n int) {
 				}
 
 				if smsg.Flush != nil {
-					this.flushTo(smsg)
-
+					go func() {
+						for _, r := range this.Recs {
+							smsg := message.Smsg{
+								Record: r,
+							}
+							smsg.Flush <- smsg
+						}
+						close(smsg.Flush)
+						smsg.Flush = nil
+					}()
 				}
 			}
 		}()

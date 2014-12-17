@@ -53,18 +53,20 @@ func NewLabeller(dbfile string) *labeller {
 	return l
 }
 
-func (this *labeller) MatchLabel(name string, maxDist int) string {
+func (this *labeller) MatchLabel(name string, maxDist int) (string, error) {
 
 	pairs := this.Pairs()
-
 	matches := matcher.NewMatch(
 		name,
 		pairs.keys,
 	)
+	match, err := matches.Best(maxDist)
+	if err != nil {
+		return "", err
+	}
+	idx := match.Index
 
-	idx := matches.Best(maxDist).Index
-
-	return pairs.labels[idx]
+	return pairs.labels[idx], nil
 }
 
 func (this *labeller) AddLabel(rec record.Record) *sync.WaitGroup {
@@ -91,6 +93,7 @@ func (this *labeller) start(n int) {
 			// grab the pointer to this Rec as we are going to update
 			// its fields
 			rec := &smsg.Record
+
 			name := rec.Name
 
 			// if this is a label-update then apply the label to the store and
@@ -110,12 +113,14 @@ func (this *labeller) start(n int) {
 			}
 
 			// else see if we can match a label to this record
-			label := this.MatchLabel(name, this.matchDist)
-
-			if label != "" && label != rec.Label {
-				rec.Updated = true
-				rec.Label = label
+			label, err := this.MatchLabel(name, this.matchDist)
+			if err != nil {
+				if label != rec.Label {
+					rec.Updated = true
+					rec.Label = label
+				}
 			}
+
 			this.ReadFrom <- smsg
 		}
 	}
